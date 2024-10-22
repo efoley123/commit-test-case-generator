@@ -20,6 +20,10 @@ def addTwo(a):
     """Returns the number plus two."""
     return a+2
 
+def addThree(a):
+    """Returns the number plus three."""
+    return a+3
+
 def divide(a, b):
     """Returns the quotient of two numbers.
 
