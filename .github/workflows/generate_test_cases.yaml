@@ -175,7 +175,7 @@ jobs:
           -H "Authorization: Bearer $OPENAI_API_KEY" \
           -d '{
             "model": "gpt-3.5-turbo",
-            "messages": [{"role": "user", "content": "Based on the last commit message: `'"$LAST_COMMIT_MESSAGE"'`, please generate python code test cases."}]
+            "messages": [{"role":"system","content":"You are a computer programmer asigned to make test cases for python files"},{"role": "user", "content": "Based on the last commit message: `'"$LAST_COMMIT_MESSAGE"'`, please generate python code test cases."}]
           }' | jq -r '.choices[0].message.content')
 
           # Create a new file and write the response to it
