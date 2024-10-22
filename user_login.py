@@ -25,7 +25,7 @@ class UserLogin:
     def get_registered_users():
         """Returns a list of registered users."""
         return list(UserLogin.registered_users)
-
+#random comment
 # Example usage
 if __name__ == "__main__":
     user_email = "test@example.com"
