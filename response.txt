@@ -1,14 +1,26 @@
-1. Input: 0 
-   Expected output: 1
-   
-2. Input: 5 
-   Expected output: 6
-   
-3. Input: -10 
-   Expected output: -9
-   
-4. Input: 100
-   Expected output: 101
-   
-5. Input: 3.14
-   Expected output: 4.14
+Here are some test cases for the function that adds 1 to input:
+
+Test case 1:
+```
+assert add_one(5) == 6, "Error: Should return 6"
+```
+
+Test case 2:
+```
+assert add_one(-1) == 0, "Error: Should return 0"
+```
+
+Test case 3:
+```
+assert add_one(100) == 101, "Error: Should return 101"
+```
+
+Test case 4:
+```
+assert add_one(0) == 1, "Error: Should return 1"
+```
+
+Test case 5:
+```
+assert add_one(-5) == -4, "Error: Should return -4"
+```
