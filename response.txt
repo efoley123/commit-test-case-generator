@@ -1,26 +1,16 @@
-Here are some test cases for the function that adds 1 to input:
+Sure! Here are some test cases you could use to test the function that adds 1 to the input:
 
-Test case 1:
-```
-assert add_one(5) == 6, "Error: Should return 6"
-```
+```python
+def test_add_one():
+    assert add_one(1) == 2
+    assert add_one(5) == 6
+    assert add_one(10) == 11
+    assert add_one(0) == 1
+    assert add_one(-1) == 0
+    assert add_one(-5) == -4
+    assert add_one(100) == 101
 
-Test case 2:
-```
-assert add_one(-1) == 0, "Error: Should return 0"
-```
-
-Test case 3:
-```
-assert add_one(100) == 101, "Error: Should return 101"
+test_add_one()
 ```
 
-Test case 4:
-```
-assert add_one(0) == 1, "Error: Should return 1"
-```
-
-Test case 5:
-```
-assert add_one(-5) == -4, "Error: Should return -4"
-```
+You can add these test cases to your test suite to verify that the function is working as expected.
