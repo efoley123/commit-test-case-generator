@@ -158,21 +158,16 @@ jobs:
 
       - name: Get last commit message
         id: get_commit
-        run: echo "COMMIT_MESSAGE=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
-
-      - name: Get new lines of code
-        id: get_new_code
         run: |
-          # Get the diff of the last commit
-          NEW_CODE=$(git diff HEAD~1 HEAD --unified=0 | grep '^+' | sed 's/^+//')
-          echo "NEW_CODE=\"$NEW_CODE\"" >> $GITHUB_ENV
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          echo "COMMIT_MESSAGE=\"$COMMIT_MESSAGE\"" >> $GITHUB_ENV
 
       - name: Send data to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # Construct prompt for OpenAI
-          PROMPT="Commit message: $COMMIT_MESSAGE\nNew lines of code:\n$NEW_CODE\n\nAre there any new test cases that should be added based on this information?"
+          # Construct prompt for OpenAI based on the commit message
+          PROMPT="Commit message: $COMMIT_MESSAGE\n\nBased on this commit message, are there any new test cases that should be added to the application?"
 
           # Send request to OpenAI and capture the response
           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
@@ -181,10 +176,17 @@ jobs:
           -d '{
             "model": "gpt-3.5-turbo",
             "messages": [{"role": "user", "content": "'"$PROMPT"'"}]
-          }' | jq -r '.choices[0].message.content')
+          }')
+
+          # Log the response for debugging
+          echo "API Response: $RESPONSE"
+
+          # Extract and save the response content
+          FINAL_RESPONSE=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
+          echo "Final response content: $FINAL_RESPONSE"
 
           # Create a new file and write the response to it
-          echo "$RESPONSE" > response.txt
+          echo "$FINAL_RESPONSE" > response.txt
 
       - name: Commit response file
         run: |
