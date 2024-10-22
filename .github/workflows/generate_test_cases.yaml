@@ -13,6 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Install jq
+        run: sudo apt-get install jq
+
       - name: Get commit info and file contents
         id: get_commit_info
         run: |
@@ -24,7 +27,7 @@ jobs:
 
           # Initialize a variable to hold file contents
           FILE_CONTENTS=""
-          
+
           # Read contents of each changed file
           for FILE in $CHANGED_FILES; do
             if [[ -f "$FILE" ]]; then
@@ -65,7 +68,7 @@ jobs:
           echo "$TEST_CASES" >> generated_test_cases.txt
 
       - name: Upload generated test cases
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: generated-test-cases
           path: generated_test_cases.txt

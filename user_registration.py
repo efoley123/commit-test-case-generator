@@ -1,4 +1,4 @@
-# user_registration.py
+import re
 
 class UserRegistration:
     registered_users = set()  # A set to store registered users
@@ -9,11 +9,22 @@ class UserRegistration:
         if email in UserRegistration.registered_users:
             raise ValueError("Email is already registered.")
         
-        if len(password) < 6:
-            raise ValueError("Password must be at least 6 characters long.")
-        
+        # Validate password
+        if not UserRegistration.is_valid_password(password):
+            raise ValueError("Password must be at least 6 characters long, contain at least one digit, and one special character.")
+
         UserRegistration.registered_users.add(email)
         return {"email": email, "status": "registered"}
+
+    @staticmethod
+    def is_valid_password(password):
+        """Validates the password strength."""
+        # Check if the password meets the criteria
+        if (len(password) < 6 or
+                not re.search(r"\d", password) or  # At least one digit
+                not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password)):  # At least one special character
+            return False
+        return True
 
     @staticmethod
     def get_registered_users():
