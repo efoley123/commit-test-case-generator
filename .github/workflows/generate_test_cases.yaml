@@ -15,17 +15,17 @@ jobs:
         with:
           fetch-depth: 0  # Fetch full history to ensure all files are available
 
-      - name: Install jq and base64 (for encoding)
+      - name: Install dependencies
         run: |
           sudo apt-get install -y jq
-          sudo apt-get install -y coreutils  # For base64 encoding
+          sudo apt-get install -y coreutils  # For base64 encoding/decoding
 
       - name: Get commit info and file contents
         id: get_commit_info
         run: |
           # Get the commit message
           COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
-          
+
           # Get changed files (use --name-only with HEAD~1 to compare against previous commit)
           CHANGED_FILES="$(git diff --name-only HEAD~1 HEAD)"
           
@@ -48,8 +48,17 @@ jobs:
           # Debug: Output file contents before encoding
           echo "File Contents Before Encoding: $FILE_CONTENTS"
 
+          # Ensure FILE_CONTENTS is not empty
+          if [[ -z "$FILE_CONTENTS" ]]; then
+            echo "No file contents were found."
+            exit 1  # Exit early if no content is found
+          fi
+
           # Base64 encode the file contents to avoid issues with newlines or special characters
           ENCODED_FILE_CONTENTS=$(echo -e "$FILE_CONTENTS" | base64)
+
+          # Debug: Output encoded file contents
+          echo "Encoded File Contents: $ENCODED_FILE_CONTENTS"
 
           # Output commit message and encoded file contents for the next step
           echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
@@ -62,6 +71,9 @@ jobs:
         run: |
           # Decode the file contents before using them in the prompt
           DECODED_FILE_CONTENTS=$(echo "$ENCODED_FILE_CONTENTS" | base64 --decode)
+
+          # Debug: Output decoded file contents
+          echo "Decoded File Contents: $DECODED_FILE_CONTENTS"
 
           # Prepare the prompt for OpenAI
           PROMPT="Generate test cases based on the following commit message: '$COMMIT_MESSAGE' and the code changes:\n$DECODED_FILE_CONTENTS"
