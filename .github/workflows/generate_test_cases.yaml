@@ -1,0 +1,71 @@
+name: Generate Test Cases
+
+on:
+  push:
+    branches:
+      - main  # Change this to your default branch if necessary
+
+jobs:
+  generate_test_cases:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get commit info and file contents
+        id: get_commit_info
+        run: |
+          # Get the commit message
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          
+          # Get changed files
+          CHANGED_FILES="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+
+          # Initialize a variable to hold file contents
+          FILE_CONTENTS=""
+          
+          # Read contents of each changed file
+          for FILE in $CHANGED_FILES; do
+            if [[ -f "$FILE" ]]; then
+              FILE_CONTENTS+="\n\nFile: $FILE\n"
+              FILE_CONTENTS+="$(cat "$FILE")"
+            fi
+          done
+
+          # Output commit message and file contents for the next step
+          echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
+          echo "FILE_CONTENTS=$FILE_CONTENTS" >> $GITHUB_ENV
+
+      - name: Generate test cases
+        id: generate_test_cases
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # Prepare the prompt for OpenAI
+          PROMPT="Generate test cases based on the following commit message: '$COMMIT_MESSAGE' and the code changes:\n$FILE_CONTENTS"
+
+          # Call the OpenAI API
+          RESPONSE=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -d '{
+              "model": "gpt-3.5-turbo",
+              "messages": [{"role": "user", "content": "'"${PROMPT}"'"}]
+            }')
+
+          # Extract generated test cases from the response
+          TEST_CASES=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
+
+          # Write the generated test cases to a file
+          echo "Commit Message: $COMMIT_MESSAGE" > generated_test_cases.txt
+          echo "Code Changes:" >> generated_test_cases.txt
+          echo -e "$FILE_CONTENTS" >> generated_test_cases.txt
+          echo "Generated Test Cases:" >> generated_test_cases.txt
+          echo "$TEST_CASES" >> generated_test_cases.txt
+
+      - name: Upload generated test cases
+        uses: actions/upload-artifact@v2
+        with:
+          name: generated-test-cases
+          path: generated_test_cases.txt
