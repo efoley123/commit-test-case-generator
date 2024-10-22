@@ -28,6 +28,11 @@ def addfour(a):
     """Returns the number plus four."""
     return a+4
 
+
+def addfive(a):
+    """Returns the number plus five."""
+    return a+5
+
 def divide(a, b):
     """Returns the quotient of two numbers.
 

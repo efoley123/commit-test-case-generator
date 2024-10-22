@@ -101,7 +101,47 @@
 #           path: generated_test_cases.txt
 
 
-name: Send Prompt to OpenAI
+# name: Send Prompt to OpenAI
+
+# on:
+#   push:
+#     branches:
+#       - main  # Change this to your target branch if needed
+
+# jobs:
+#   send_prompt:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Check out code
+#         uses: actions/checkout@v2
+
+#       - name: Send prompt to OpenAI and save response
+#         env:
+#           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+#         run: |
+#           # Send request to OpenAI and capture the response
+#           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
+#           -H "Content-Type: application/json" \
+#           -H "Authorization: Bearer $OPENAI_API_KEY" \
+#           -d '{
+#             "model": "gpt-3.5-turbo",
+#             "messages": [{"role": "user", "content": "hi"}]
+#           }' | jq -r '.choices[0].message.content')
+
+#           # Create a new file and write the response to it
+#           echo "$RESPONSE" > response.txt
+
+#       - name: Commit response file
+#         run: |
+#           git config --local user.name "github-actions"
+#           git config --local user.email "github-actions@github.com"
+#           git add response.txt
+#           git commit -m "Add OpenAI response"
+#           git push
+
+
+name: Analyze Commit and Suggest Test Cases
 
 on:
   push:
@@ -109,24 +149,38 @@ on:
       - main  # Change this to your target branch if needed
 
 jobs:
-  send_prompt:
+  analyze_commit:
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Send prompt to OpenAI and save response
+      - name: Get last commit message
+        id: get_commit
+        run: echo "COMMIT_MESSAGE=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
+
+      - name: Get new lines of code
+        id: get_new_code
+        run: |
+          # Get the diff of the last commit
+          NEW_CODE=$(git diff HEAD~1 HEAD --unified=0 | grep '^+' | sed 's/^+//')
+          echo "NEW_CODE=\"$NEW_CODE\"" >> $GITHUB_ENV
+
+      - name: Send data to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          # Construct prompt for OpenAI
+          PROMPT="Commit message: $COMMIT_MESSAGE\nNew lines of code:\n$NEW_CODE\n\nAre there any new test cases that should be added based on this information?"
+
           # Send request to OpenAI and capture the response
           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer $OPENAI_API_KEY" \
           -d '{
             "model": "gpt-3.5-turbo",
-            "messages": [{"role": "user", "content": "hi"}]
+            "messages": [{"role": "user", "content": "'"$PROMPT"'"}]
           }' | jq -r '.choices[0].message.content')
 
           # Create a new file and write the response to it
