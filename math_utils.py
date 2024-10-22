@@ -12,6 +12,10 @@ def multiply(a, b):
     """Returns the product of two numbers."""
     return a * b
 
+def addOne(a):
+    """Returns the number plus one."""
+    return a+1
+
 def divide(a, b):
     """Returns the quotient of two numbers.
 
