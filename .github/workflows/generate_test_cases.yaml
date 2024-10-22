@@ -24,6 +24,9 @@ jobs:
           
           # Get changed files
           CHANGED_FILES="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          
+          # Debug: Output changed files
+          echo "Changed Files: $CHANGED_FILES"
 
           # Initialize a variable to hold file contents
           FILE_CONTENTS=""
@@ -33,8 +36,17 @@ jobs:
             if [[ -f "$FILE" ]]; then
               FILE_CONTENTS+="\n\nFile: $FILE\n"
               FILE_CONTENTS+="$(cat "$FILE")"
+            else
+              echo "File not found or not a regular file: $FILE"
             fi
           done
+
+          # Debug: Output file contents
+          if [[ -z "$FILE_CONTENTS" ]]; then
+            echo "No file contents were read."
+          else
+            echo "File Contents: $FILE_CONTENTS"
+          fi
 
           # Output commit message and file contents for the next step
           echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
