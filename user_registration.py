@@ -17,6 +17,15 @@ class UserRegistration:
         return {"email": email, "status": "registered"}
 
     @staticmethod
+    def unregister_user(email):
+        """Unregisters a user if the email is registered."""
+        if email not in UserRegistration.registered_users:
+            raise ValueError("Email is not registered.")
+        
+        UserRegistration.registered_users.remove(email)
+        return {"email": email, "status": "unregistered"}
+
+    @staticmethod
     def is_valid_password(password):
         """Validates the password strength."""
         # Check if the password meets the criteria
