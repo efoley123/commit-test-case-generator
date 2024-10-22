@@ -12,71 +12,64 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Fetch full history to ensure all files are available
 
       - name: Install dependencies
         run: |
           sudo apt-get install -y jq
-          sudo apt-get install -y coreutils  # For base64 encoding/decoding
 
-      - name: Get commit info and file contents
-        id: get_commit_info
+      - name: Get changed files
+        id: get_changed_files
         run: |
-          # Get the commit message
-          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
-
-          # Get changed files (use --name-only with HEAD~1 to compare against previous commit)
-          CHANGED_FILES="$(git diff --name-only HEAD~1 HEAD)"
+          # Get the list of changed files using the GitHub REST API
+          CHANGED_FILES=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }} \
+            | jq -r '.files[].filename')
 
           # Debug: Output changed files
           echo "Changed Files: $CHANGED_FILES"
 
+          # Ensure CHANGED_FILES is not empty
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "No files changed in the commit."
+            exit 1
+          fi
+
+          # Output the changed files to be used in the next step
+          echo "CHANGED_FILES=$CHANGED_FILES" >> $GITHUB_ENV
+
+      - name: Get file contents
+        id: get_file_contents
+        run: |
           # Initialize a variable to hold file contents
           FILE_CONTENTS=""
 
-          # Read contents of each changed file
+          # Loop through each changed file and fetch its content using GitHub API
           for FILE in $CHANGED_FILES; do
-            if [[ -f "$FILE" ]]; then
-              FILE_CONTENTS+="\n\nFile: $FILE\n"
-              FILE_CONTENTS+="$(cat "$FILE")"
-            else
-              echo "File not found or not a regular file: $FILE"
-            fi
+            # Fetch the file content from GitHub API (returns base64 encoded content)
+            FILE_CONTENT=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/${{ github.repository }}/contents/$FILE \
+              | jq -r '.content')
+
+            # Decode the base64 encoded content
+            DECODED_FILE_CONTENT=$(echo "$FILE_CONTENT" | base64 --decode)
+
+            # Append the file name and its decoded content to FILE_CONTENTS
+            FILE_CONTENTS+="\n\nFile: $FILE\n$DECODED_FILE_CONTENT"
           done
 
-          # Debug: Output file contents before encoding
-          echo -e "File Contents Before Encoding: $FILE_CONTENTS"
+          # Debug: Output the decoded file contents
+          echo -e "File Contents: $FILE_CONTENTS"
 
-          # Ensure FILE_CONTENTS is not empty
-          if [[ -z "$FILE_CONTENTS" ]]; then
-            echo "No file contents were found."
-            exit 1  # Exit early if no content is found
-          fi
-
-          # Base64 encode the file contents to avoid issues with newlines or special characters
-          ENCODED_FILE_CONTENTS=$(echo -e "$FILE_CONTENTS" | base64)
-
-          # Debug: Output encoded file contents
-          echo "Encoded File Contents: $ENCODED_FILE_CONTENTS"
-
-          # Output commit message and encoded file contents for the next step
-          echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> $GITHUB_ENV
-          echo "ENCODED_FILE_CONTENTS=$ENCODED_FILE_CONTENTS" >> $GITHUB_ENV
+          # Output the file contents for the next step
+          echo "FILE_CONTENTS=$FILE_CONTENTS" >> $GITHUB_ENV
 
       - name: Generate test cases
         id: generate_test_cases
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # Decode the file contents before using them in the prompt
-          DECODED_FILE_CONTENTS=$(echo "$ENCODED_FILE_CONTENTS" | base64 --decode)
-
-          # Debug: Output decoded file contents
-          echo "Decoded File Contents: $DECODED_FILE_CONTENTS"
-
           # Prepare the prompt for OpenAI
-          PROMPT="Generate test cases based on the following commit message: '$COMMIT_MESSAGE' and the code changes:\n$DECODED_FILE_CONTENTS"
+          PROMPT="Generate test cases based on the following commit message: '${{ github.event.head_commit.message }}' and the code changes:\n${{ env.FILE_CONTENTS }}"
 
           # Call the OpenAI API
           RESPONSE=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
@@ -91,10 +84,7 @@ jobs:
           TEST_CASES=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
 
           # Write the generated test cases to a file
-          echo "Commit Message: $COMMIT_MESSAGE" > generated_test_cases.txt
-          echo "Code Changes:" >> generated_test_cases.txt
-          echo -e "$DECODED_FILE_CONTENTS" >> generated_test_cases.txt
-          echo "Generated Test Cases:" >> generated_test_cases.txt
+          echo "Generated Test Cases:" > generated_test_cases.txt
           echo "$TEST_CASES" >> generated_test_cases.txt
 
       - name: Upload generated test cases
