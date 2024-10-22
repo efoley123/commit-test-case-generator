@@ -101,22 +101,41 @@
 #           path: generated_test_cases.txt
 
 
-on: [pull_request]
+name: Send Prompt to OpenAI
+
+on:
+  push:
+    branches:
+      - main  # Change this to your target branch if needed
 
 jobs:
-  code-review:
+  send_prompt:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
+
     steps:
-      # This step checks out a copy of your repository.
-      - uses: actions/checkout@v3
-      # This step references the directory that contains the action.
-      - uses: sshnaidm/gpt-code-review-action@v2.0
-        with:
-          openai-key: ${{ secrets.OPENAI_API_KEY }}
-          # model: 'gpt-4'
-          # max-length: 8000
-          # prompt: 'Only suggest performance improvements for this code.'
-          # post-if-error: false
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Send prompt to OpenAI and save response
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # Send request to OpenAI and capture the response
+          RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $OPENAI_API_KEY" \
+          -d '{
+            "model": "gpt-3.5-turbo",
+            "messages": [{"role": "user", "content": "hi"}]
+          }' | jq -r '.choices[0].message.content')
+
+          # Create a new file and write the response to it
+          echo "$RESPONSE" > response.txt
+
+      - name: Commit response file
+        run: |
+          git config --local user.name "github-actions"
+          git config --local user.email "github-actions@github.com"
+          git add response.txt
+          git commit -m "Add OpenAI response"
+          git push
