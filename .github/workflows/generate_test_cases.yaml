@@ -140,58 +140,42 @@
 #           git commit -m "Add OpenAI response"
 #           git push
 
-
-name: Analyze Commit and Suggest Test Cases
+name: Generate Test Cases
 
 on:
   push:
     branches:
-      - main  # Change this to your target branch if needed
+      - main  # Change this if your default branch is different
 
 jobs:
-  analyze_commit:
+  generate-test-cases:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
+      - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Get last commit message
+      - name: Get Last Commit Message
         id: get_commit
         run: |
-          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          echo "COMMIT_MESSAGE=\"$COMMIT_MESSAGE\"" >> $GITHUB_ENV
+          echo "::set-output name=message::$(git log -1 --pretty=%B)"
 
-      - name: Send data to OpenAI and save response
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Send to OpenAI
+        id: openai
         run: |
-          # Construct prompt for OpenAI based on the commit message
-          PROMPT="Commit message: $COMMIT_MESSAGE\n\nBased on this commit message, are there any new test cases that should be added to the application?"
+          echo "Sending request to OpenAI..."
+          RESPONSE=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d '{
+              "model": "gpt-3.5-turbo",  # Change model if needed
+              "messages": [{"role": "user", "content": "Based on the last commit message: '${{ steps.get_commit.outputs.message }}', generate new test cases."}]
+            }')
 
-          # Send request to OpenAI and capture the response
-          RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer $OPENAI_API_KEY" \
-          -d '{
-            "model": "gpt-3.5-turbo",
-            "messages": [{"role": "user", "content": "'"$PROMPT"'"}]
-          }')
+          echo "$RESPONSE" > response.txt
 
-          # Log the response for debugging
-          echo "API Response: $RESPONSE"
-
-          # Extract and save the response content
-          FINAL_RESPONSE=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
-          echo "Final response content: $FINAL_RESPONSE"
-
-          # Create a new file and write the response to it
-          echo "$FINAL_RESPONSE" > response.txt
-
-      - name: Commit response file
-        run: |
-          git config --local user.name "github-actions"
-          git config --local user.email "github-actions@github.com"
-          git add response.txt
-          git commit -m "Add OpenAI response"
-          git push
+      - name: Upload Response
+        uses: actions/upload-artifact@v3
+        with:
+          name: response
+          path: response.txt
