@@ -8,3 +8,6 @@ def subtract(a, b):
     """Returns the difference between two numbers."""
     return a - b
 
+def multiply(a, b):
+    """Returns the multiplication of the two numbers."""
+    return a*b

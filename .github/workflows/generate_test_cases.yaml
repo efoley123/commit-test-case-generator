@@ -18,25 +18,28 @@ jobs:
         run: |
           # Check if there's more than one commit
           if [ $(git rev-list --count HEAD) -gt 1 ]; then
-            # Get the git diff between the last and previous commit
-            GIT_DIFF=$(git diff HEAD^ HEAD)
+            # Get the git diff between the last and previous commit with minimal context
+            GIT_DIFF=$(git diff HEAD^ HEAD --unified=0)
           else
             # If there's only one commit, get the diff of the first commit
-            GIT_DIFF=$(git show HEAD)
+            GIT_DIFF=$(git show HEAD --unified=0)
           fi
 
-          # Set the diff as output to use it in the next step
-          echo "::set-output name=diff::$GIT_DIFF"
+          # Format the diff for readability by replacing tabs with spaces and cleaning special characters
+          CLEAN_DIFF=$(echo "$GIT_DIFF" | sed 's/\t/    /g')
+
+          # Set the cleaned diff as output to use it in the next step
+          echo "::set-output name=diff::$CLEAN_DIFF"
 
       - name: Send prompt to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # Get the git diff from the previous step
+          # Get the cleaned git diff from the previous step
           GIT_DIFF="${{ steps.get_diff.outputs.diff }}"
 
-          # Prepare the prompt including only the git diff
-          PROMPT="Based on the following changes (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases for the updated functionality."
+          # Prepare the prompt with structured and cleaned git diff
+          PROMPT="Here are the changes (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases based on the code changes."
 
           # Send request to OpenAI and capture the response
           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
@@ -44,7 +47,7 @@ jobs:
           -H "Authorization: Bearer $OPENAI_API_KEY" \
           -d '{
             "model": "gpt-3.5-turbo",
-            "messages": [{"role": "system", "content": "You are a computer programmer tasked with generating Python 'unittest' test cases based on a git diff."}, {"role": "user", "content": "'"$PROMPT"'"}]
+            "messages": [{"role": "system", "content": "You are a programmer tasked with generating Python 'unittest' test cases based on a git diff."}, {"role": "user", "content": "'"$PROMPT"'"}]
           }' | jq -r '.choices[0].message.content')
 
           # Create a new file and write the response to it
