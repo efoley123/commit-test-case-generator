@@ -1,23 +1,27 @@
-Based on the commit message 'made a function that checks if odd', we can create test cases to validate the functionality of the newly added function that checks if a number is odd. Here are some example test cases that could be considered:
+Sure! Based on the commit message and changes made, here are some Python unittest test cases for the updated functionality:
 
-1. Test case to check if the function correctly identifies an odd number:
-   Input: 5
-   Expected Output: True
+```python
+import unittest
 
-2. Test case to check if the function correctly identifies an even number:
-   Input: 6
-   Expected Output: False
+def check_numbers_equal(num1, num2):
+    return num1 == num2
 
-3. Test case to check if the function correctly handles negative odd numbers:
-   Input: -3
-   Expected Output: True
+class TestCheckNumbersEqual(unittest.TestCase):
 
-4. Test case to check if the function correctly handles negative even numbers:
-   Input: -4
-   Expected Output: False
+    def test_equal_numbers(self):
+        self.assertTrue(check_numbers_equal(10, 10))
 
-5. Test case to check if the function correctly handles zero:
-   Input: 0
-   Expected Output: False
+    def test_different_numbers(self):
+        self.assertFalse(check_numbers_equal(5, 8))
 
-These test cases cover a range of scenarios to ensure that the function is correctly identifying odd numbers.
+    def test_negative_numbers(self):
+        self.assertTrue(check_numbers_equal(-3, -3))
+
+    def test_zero_numbers(self):
+        self.assertTrue(check_numbers_equal(0, 0))
+
+if __name__ == '__main__':
+    unittest.main()
+``` 
+
+These test cases will check if the function `check_numbers_equal` correctly identifies when two numbers are equal or not, including scenarios with negative numbers and zeros.
