@@ -25,10 +25,16 @@ jobs:
             GIT_DIFF=$(git show HEAD --unified=0)
           fi
 
+          # Debug: Output the git diff to verify
+          echo "Git Diff: $GIT_DIFF"
+
           # Format the diff for readability by replacing tabs with spaces and cleaning special characters
           CLEAN_DIFF=$(echo "$GIT_DIFF" | sed 's/\t/    /g')
 
-          # Set the cleaned diff as output to use it in the next step
+          # Debug: Output cleaned diff for verification
+          echo "Clean Diff: $CLEAN_DIFF"
+
+          # Set the cleaned diff as output to use in the next step
           echo "::set-output name=diff::$CLEAN_DIFF"
 
       - name: Send prompt to OpenAI and save response
@@ -38,8 +44,15 @@ jobs:
           # Get the cleaned git diff from the previous step
           GIT_DIFF="${{ steps.get_diff.outputs.diff }}"
 
+          # Debug: Output the git diff being sent in the prompt
+          echo "Sending the following diff in the prompt:"
+          echo "$GIT_DIFF"
+
           # Prepare the prompt with structured and cleaned git diff
           PROMPT="Here are the changes (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases based on the code changes."
+
+          # Debug: Output the constructed prompt for verification
+          echo "Constructed Prompt: $PROMPT"
 
           # Send request to OpenAI and capture the response
           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
@@ -49,6 +62,9 @@ jobs:
             "model": "gpt-3.5-turbo",
             "messages": [{"role": "system", "content": "You are a programmer tasked with generating Python 'unittest' test cases based on a git diff."}, {"role": "user", "content": "'"$PROMPT"'"}]
           }' | jq -r '.choices[0].message.content')
+
+          # Debug: Output the response for verification
+          echo "OpenAI Response: $RESPONSE"
 
           # Create a new file and write the response to it
           echo "$RESPONSE" > response.txt
