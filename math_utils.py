@@ -33,6 +33,13 @@ def addfive(a):
     """Returns the number plus five."""
     return a+5
 
+def Even(a):
+    """Returns true if the number is even."""
+    if a%2==0:
+        return True
+    else:
+        return False
+
 def divide(a, b):
     """Returns the quotient of two numbers.
 
