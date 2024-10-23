@@ -1,16 +1,23 @@
-Sure! Here are some test cases you could use to test the function that adds 1 to the input:
+Based on the commit message 'made a function that checks if odd', we can create test cases to validate the functionality of the newly added function that checks if a number is odd. Here are some example test cases that could be considered:
 
-```python
-def test_add_one():
-    assert add_one(1) == 2
-    assert add_one(5) == 6
-    assert add_one(10) == 11
-    assert add_one(0) == 1
-    assert add_one(-1) == 0
-    assert add_one(-5) == -4
-    assert add_one(100) == 101
+1. Test case to check if the function correctly identifies an odd number:
+   Input: 5
+   Expected Output: True
 
-test_add_one()
-```
+2. Test case to check if the function correctly identifies an even number:
+   Input: 6
+   Expected Output: False
 
-You can add these test cases to your test suite to verify that the function is working as expected.
+3. Test case to check if the function correctly handles negative odd numbers:
+   Input: -3
+   Expected Output: True
+
+4. Test case to check if the function correctly handles negative even numbers:
+   Input: -4
+   Expected Output: False
+
+5. Test case to check if the function correctly handles zero:
+   Input: 0
+   Expected Output: False
+
+These test cases cover a range of scenarios to ensure that the function is correctly identifying odd numbers.
