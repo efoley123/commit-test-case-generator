@@ -13,12 +13,9 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Get last commit message and git diff
-        id: get_commit_and_diff
+      - name: Get git diff
+        id: get_diff
         run: |
-          # Get the last commit message
-          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          
           # Check if there's more than one commit
           if [ $(git rev-list --count HEAD) -gt 1 ]; then
             # Get the git diff between the last and previous commit
@@ -28,20 +25,18 @@ jobs:
             GIT_DIFF=$(git show HEAD)
           fi
 
-          # Set both as outputs to use them in the next step
-          echo "::set-output name=message::$LAST_COMMIT_MESSAGE"
+          # Set the diff as output to use it in the next step
           echo "::set-output name=diff::$GIT_DIFF"
 
       - name: Send prompt to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # Get the last commit message and git diff from the previous step
-          LAST_COMMIT_MESSAGE="${{ steps.get_commit_and_diff.outputs.message }}"
-          GIT_DIFF="${{ steps.get_commit_and_diff.outputs.diff }}"
+          # Get the git diff from the previous step
+          GIT_DIFF="${{ steps.get_diff.outputs.diff }}"
 
-          # Prepare the prompt including the commit message and the git diff
-          PROMPT="Based on the changes made (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases for the updated functionality."
+          # Prepare the prompt including only the git diff
+          PROMPT="Based on the following changes (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases for the updated functionality."
 
           # Send request to OpenAI and capture the response
           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
@@ -49,7 +44,7 @@ jobs:
           -H "Authorization: Bearer $OPENAI_API_KEY" \
           -d '{
             "model": "gpt-3.5-turbo",
-            "messages": [{"role": "system", "content": "You are a computer programmer tasked with generating Python 'unittest' test cases based on a git commit and diff."}, {"role": "user", "content": "'"$PROMPT"'"}]
+            "messages": [{"role": "system", "content": "You are a computer programmer tasked with generating Python 'unittest' test cases based on a git diff."}, {"role": "user", "content": "'"$PROMPT"'"}]
           }' | jq -r '.choices[0].message.content')
 
           # Create a new file and write the response to it
@@ -60,5 +55,5 @@ jobs:
           git config --local user.name "github-actions"
           git config --local user.email "github-actions@github.com"
           git add response.txt
-          git commit -m "Add OpenAI response based on last commit and diff"
+          git commit -m "Add OpenAI response based on git diff"
           git push
