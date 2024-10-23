@@ -11,3 +11,7 @@ def subtract(a, b):
 def multiply(a, b):
     """Returns the multiplication of the two numbers."""
     return a*b
+
+def divide(a, b):
+    """Returns the division of the two numbers."""
+    return a/b
