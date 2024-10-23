@@ -19,8 +19,14 @@ jobs:
           # Get the last commit message
           LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           
-          # Get the git diff between the last and previous commit
-          GIT_DIFF=$(git diff HEAD^ HEAD)
+          # Check if there's more than one commit
+          if [ $(git rev-list --count HEAD) -gt 1 ]; then
+            # Get the git diff between the last and previous commit
+            GIT_DIFF=$(git diff HEAD^ HEAD)
+          else
+            # If there's only one commit, get the diff of the first commit
+            GIT_DIFF=$(git show HEAD)
+          fi
 
           # Set both as outputs to use them in the next step
           echo "::set-output name=message::$LAST_COMMIT_MESSAGE"

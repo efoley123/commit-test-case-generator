@@ -39,7 +39,14 @@ def Even(a):
         return True
     else:
         return False
-
+    
+def odd(a):
+    """Returns true if the number is odd."""
+    if a%2==0:
+        return False
+    else:
+        return True
+    
 def divide(a, b):
     """Returns the quotient of two numbers.
 
