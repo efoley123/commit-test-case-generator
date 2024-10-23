@@ -41,7 +41,7 @@ jobs:
           GIT_DIFF="${{ steps.get_commit_and_diff.outputs.diff }}"
 
           # Prepare the prompt including the commit message and the git diff
-          PROMPT="Based on the following commit message: \n\n'${LAST_COMMIT_MESSAGE}'\n\nAnd the changes made (git diff): \n\n${GIT_DIFF}\n\nPlease generate the necessary test cases."
+          PROMPT="Based on the following commit message: \n\n'${LAST_COMMIT_MESSAGE}'\n\nAnd the changes made (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases for the updated functionality."
 
           # Send request to OpenAI and capture the response
           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
@@ -49,7 +49,7 @@ jobs:
           -H "Authorization: Bearer $OPENAI_API_KEY" \
           -d '{
             "model": "gpt-3.5-turbo",
-            "messages": [{"role": "system", "content": "You are a computer programmer assigned to generate test cases based on the git commit and diff."}, {"role": "user", "content": "'"$PROMPT"'"}]
+            "messages": [{"role": "system", "content": "You are a computer programmer tasked with generating Python 'unittest' test cases based on a git commit and diff."}, {"role": "user", "content": "'"$PROMPT"'"}]
           }' | jq -r '.choices[0].message.content')
 
           # Create a new file and write the response to it

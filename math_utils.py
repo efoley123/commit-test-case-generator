@@ -47,6 +47,13 @@ def odd(a):
     else:
         return True
     
+def equal(a, b):
+    """Returns true if the numbers are equal."""
+    if a==b:
+        return True
+    else:
+        return False
+    
 def divide(a, b):
     """Returns the quotient of two numbers.
 
