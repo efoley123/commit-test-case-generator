@@ -33,6 +33,10 @@ def addfive(a):
     """Returns the number plus five."""
     return a+5
 
+def addsix(a):
+    """Returns the number plus six."""
+    return a+6
+
 def Even(a):
     """Returns true if the number is even."""
     if a%2==0:

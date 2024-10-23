@@ -41,7 +41,7 @@ jobs:
           GIT_DIFF="${{ steps.get_commit_and_diff.outputs.diff }}"
 
           # Prepare the prompt including the commit message and the git diff
-          PROMPT="Based on the following commit message: \n\n'${LAST_COMMIT_MESSAGE}'\n\nAnd the changes made (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases for the updated functionality."
+          PROMPT="Based on the changes made (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases for the updated functionality."
 
           # Send request to OpenAI and capture the response
           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
