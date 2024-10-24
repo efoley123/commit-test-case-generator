@@ -53,7 +53,7 @@ jobs:
           # Output the coverage report for the prompt
           echo "::set-output name=coverage::$COVERAGE_REPORT"
 
-            - name: Send prompt to OpenAI and save response
+      - name: Send prompt to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -63,7 +63,7 @@ jobs:
           DOCSTRINGS="${{ steps.extract_docs.outputs.docs }}"
           COVERAGE_REPORT="${{ steps.get_coverage.outputs.coverage }}"
 
-          # Prepare the prompt with structured information (without test cases)
+          # Prepare the prompt with structured information (without current test cases)
           PROMPT="Here are the relevant details from the codebase:
 
           1. Function Signatures and Method Definitions:
