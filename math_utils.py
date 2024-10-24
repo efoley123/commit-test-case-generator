@@ -23,3 +23,7 @@ def addOne(a):
 def addTwo(a):
     """Returns the number plus two."""
     return a+2
+
+def addThree(a):
+    """Returns the number plus three."""
+    return a+3

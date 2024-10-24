@@ -1,61 +1,62 @@
-name: Generate Test Cases
+name: Generate Test Cases Based on Git Diff
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   generate-test-cases:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Set up Python (or your language's environment)
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'  # Choose Python version
 
-    - name: Install dependencies
-      run: |
-        pip install pytest pytest-cov
-      shell: /usr/bin/bash -e {0}
-      env:
-        pythonLocation: /opt/hostedtoolcache/Python/3.11.10/x64
-        PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.10/x64/lib/pkgconfig
-        Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.10/x64
-        Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.10/x64
-        Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.10/x64
-        LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.10/x64/lib
+      - name: Install requirements
+        run: |
+          echo "openai==0.27.0" > requirements.txt
+          pip install -r requirements.txt
 
-    - name: Run tests and generate coverage report
-      run: |
-        pytest --cov=my_project > coverage.txt  # Adjust 'my_project' to your actual project name
+      - name: Get git diff
+        id: git_diff
+        run: |
+          git diff HEAD~1 HEAD > diff.txt
+          echo "Git diff output saved to diff.txt"
+        
+      - name: Call OpenAI API to generate test cases
+        id: generate_test_cases
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # Add your OpenAI API key in GitHub Secrets
+        run: |
+          DIFF_CONTENT=$(cat diff.txt)
+          OPENAI_PROMPT="Generate test cases based on the following code changes:\n$DIFF_CONTENT"
+          
+          # Call the OpenAI API with the git diff as a prompt
+          RESPONSE=$(curl https://api.openai.com/v1/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -d '{
+              "model": "text-davinci-003",  # Adjust model if needed
+              "prompt": "'"${OPENAI_PROMPT}"'",
+              "max_tokens": 500
+            }' | jq -r '.choices[0].text')
 
-    - name: Extract uncovered lines (simple example)
-      run: |
-        grep "100%" coverage.txt | awk '{print $1}' > uncovered_lines.txt
+          # Save response to a file
+          echo "$RESPONSE" > response.txt
 
-    - name: Send uncovered lines to OpenAI
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # Ensure your OpenAI API key is in GitHub secrets
-      run: |
-        uncovered_lines=$(cat uncovered_lines.txt)
-        prompt="Generate test cases for the following lines of code that lack coverage:\n$uncovered_lines"
-        curl https://api.openai.com/v1/completions \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer $OPENAI_API_KEY" \
-          -d '{
-            "model": "gpt-4",
-            "prompt": "'"$prompt"'",
-            "max_tokens": 1000
-          }' > response.txt
-
-    - name: Save response to artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: openai-response
-        path: response.txt
+      - name: Display OpenAI response
+        run: |
+          cat response.txt
+          echo "OpenAI test cases saved to response.txt"
+      
+      - name: Upload response file
+        uses: actions/upload-artifact@v2
+        with:
+          name: response-file
+          path: response.txt
