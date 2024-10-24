@@ -53,7 +53,7 @@ jobs:
           # Output the coverage report for the prompt
           echo "::set-output name=coverage::$COVERAGE_REPORT"
 
-      - name: Send prompt to OpenAI and save response
+            - name: Send prompt to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -95,10 +95,18 @@ jobs:
           # Save the response to a file
           echo "$RESPONSE" > response.txt
 
+          # Check if the file exists and its contents
+          if [ -f response.txt ]; then
+              echo "Response file created successfully."
+              cat response.txt  # Display the file contents
+          else
+              echo "Failed to create response file."
+          fi
+
       - name: Commit response file
         run: |
           git config --local user.name "github-actions"
           git config --local user.email "github-actions@github.com"
-          git add response.txt
-          git commit -m "Add OpenAI response based on code details"
+          git add response.txt  # Ensure the correct path to response.txt
+          git commit -m "Add OpenAI response based on code details" || echo "Nothing to commit, file may not exist."
           git push
