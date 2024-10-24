@@ -1,81 +1,50 @@
-name: Send Prompt to OpenAI
+name: Generate Test Cases
 
 on:
   push:
     branches:
-      - main  # Change this to your target branch if needed
+      - main  # Change this to your default branch if needed
 
 jobs:
-  send_prompt:
+  generate_test_cases:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
+      - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Get all method signatures
-        id: get_signatures
+      - name: Extract function definitions
+        id: extract_info
         run: |
-          # Initialize a variable to store all unique method signatures
-          ALL_METHOD_SIGNATURES=""
+          echo "Extracting function definitions from main.py..."
+          functions=$(grep -E 'def ' main.py | sed 's/^\s*//;s/\s*\(.*\):/\1/' | tr '\n' '; ')
+          echo "::set-output name=data::$functions"
 
-          # Find all Python files and extract unique method signatures
-          for FILE in $(find . -name "*.py"); do
-            SIGNATURES=$(grep -E '^\s*def ' "$FILE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')  # Remove leading/trailing spaces
-            ALL_METHOD_SIGNATURES+="$SIGNATURES\n"
-          done
-
-          # Remove any trailing newlines for cleaner output
-          ALL_METHOD_SIGNATURES=$(echo -e "$ALL_METHOD_SIGNATURES" | sed '/^$/d')
-
-          # Replace colons with semicolons to avoid format issues in env variable
-          ALL_METHOD_SIGNATURES=$(echo -e "$ALL_METHOD_SIGNATURES" | sed 's/:/,/g')
-
-          # Debug: Output extracted method signatures for verification
-          echo "Method Signatures: $ALL_METHOD_SIGNATURES"
-
-          # Set the method signatures as output to use in the next step
-          echo "signatures=$ALL_METHOD_SIGNATURES" >> $GITHUB_ENV  # Using environment files to set output
-
-      - name: Send prompt to OpenAI and save response
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Send request to OpenAI API
+        id: call_openai
         run: |
-          # Get the extracted method signatures from the previous step
-          METHOD_SIGNATURES="${{ env.signatures }}"
+          echo "Sending request to OpenAI API..."
+          response=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d '{
+              "model": "gpt-3.5-turbo",
+              "messages": [{"role": "user", "content": "Generate test cases for the following functions: '"${{ steps.extract_info.outputs.data }}"'."}],
+              "max_tokens": 500
+            }')
+          
+          # Extract the AI response
+          echo "$response" | jq -r '.choices[0].message.content' > response.txt
 
-          # Replace semicolons back to colons for the prompt
-          METHOD_SIGNATURES=$(echo "$METHOD_SIGNATURES" | sed 's/;/:/g')
-
-          # Debug: Output the method signatures being sent in the prompt
-          echo "Sending the following method signatures in the prompt:"
-          echo "$METHOD_SIGNATURES"
-
-          # Prepare the prompt with structured method signatures
-          PROMPT="Here are the method signatures: \n\n${METHOD_SIGNATURES}\n\nPlease generate Python 'unittest' test cases based on these method signatures."
-
-          # Debug: Output the constructed prompt for verification
-          echo "Constructed Prompt: $PROMPT"
-
-          # Send request to OpenAI and capture the response
-          RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer $OPENAI_API_KEY" \
-          -d '{
-            "model": "gpt-3.5-turbo",
-            "messages": [{"role": "system", "content": "You are a programmer tasked with generating Python 'unittest' test cases based on method signatures."}, {"role": "user", "content": "'"$PROMPT"'"}]
-          }' | jq -r '.choices[0].message.content')
-
-          # Debug: Output the response for verification
-          echo "OpenAI Response: $RESPONSE"
-
-          # Create a new file and write the response to it
-          echo "$RESPONSE" > response.txt
-
-      - name: Commit response file
+      - name: Save AI response to response.txt
         run: |
-          git config --local user.name "github-actions"
-          git config --local user.email "github-actions@github.com"
+          echo "AI response saved to response.txt"
+          cat response.txt
+
+      - name: Commit and push response.txt
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "GitHub Action"
           git add response.txt
-          git commit -m "Add OpenAI response based on method signatures"
-          git push
+          git commit -m "Add AI-generated test cases"
+          git push origin main  # Change this to your default branch if needed
