@@ -19,3 +19,7 @@ def divide(a, b):
 def addOne(a):
     """Returns the number plus one."""
     return a+1
+
+def addTwo(a):
+    """Returns the number plus two."""
+    return a+2

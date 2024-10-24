@@ -3,48 +3,52 @@ name: Generate Test Cases
 on:
   push:
     branches:
-      - main  # Change this to your default branch if needed
+      - main
+  workflow_dispatch:
 
 jobs:
-  generate_test_cases:
+  generate-test-cases:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Extract function definitions
-        id: extract_info
-        run: |
-          echo "Extracting function definitions from main.py..."
-          functions=$(grep -E 'def ' main.py | sed 's/^\s*//;s/\s*\(.*\):/\1/' | tr '\n' '; ')
-          echo "::set-output name=data::$functions"
+    - name: Set up Python (or your language's environment)
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-      - name: Send request to OpenAI API
-        id: call_openai
-        run: |
-          echo "Sending request to OpenAI API..."
-          response=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-            -d '{
-              "model": "gpt-3.5-turbo",
-              "messages": [{"role": "user", "content": "Generate test cases for the following functions: '"${{ steps.extract_info.outputs.data }}"'."}],
-              "max_tokens": 500
-            }')
-          
-          # Extract the AI response
-          echo "$response" | jq -r '.choices[0].message.content' > response.txt
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest pytest-cov  # Example for Python
 
-      - name: Save AI response to response.txt
-        run: |
-          echo "AI response saved to response.txt"
-          cat response.txt
+    - name: Run tests and generate coverage report
+      run: |
+        pytest --cov=my_project > coverage.txt  # Adjust as needed
 
-      - name: Commit and push response.txt
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "GitHub Action"
-          git add response.txt
-          git commit -m "Add AI-generated test cases"
-          git push origin main  # Change this to your default branch if needed
+    - name: Extract uncovered lines (simple example)
+      run: |
+        grep "100%" coverage.txt | awk '{print $1}' > uncovered_lines.txt
+
+    - name: Send uncovered lines to OpenAI
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # Make sure to add your API key to GitHub secrets
+      run: |
+        uncovered_lines=$(cat uncovered_lines.txt)
+        prompt="Generate test cases for the following lines of code that lack coverage:\n$uncovered_lines"
+        curl https://api.openai.com/v1/completions \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $OPENAI_API_KEY" \
+          -d '{
+            "model": "gpt-4",
+            "prompt": "'"$prompt"'",
+            "max_tokens": 1000
+          }' > response.txt
+
+    - name: Save response to artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: openai-response
+        path: response.txt
