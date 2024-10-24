@@ -13,40 +13,37 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Get the latest commit changes
-        id: get_changes
+      - name: Get all method signatures
+        id: get_signatures
         run: |
-          # Get the latest commit hash
-          LATEST_COMMIT_HASH=$(git rev-parse HEAD)
-          
-          # Get the git diff for the latest commit
-          GIT_DIFF=$(git show --unified=0 $LATEST_COMMIT_HASH)
+          # Initialize a variable to store all method signatures
+          ALL_METHOD_SIGNATURES=""
 
-          # Debug: Output the git diff to verify
-          echo "Git Diff: $GIT_DIFF"
+          # Find all Python files and extract method signatures
+          for FILE in $(find . -name "*.py"); do
+            SIGNATURES=$(grep -E '^\s*def ' "$FILE")
+            ALL_METHOD_SIGNATURES+="$SIGNATURES\n"
+          done
 
-          # Format the diff for readability by replacing tabs with spaces
-          CLEAN_DIFF=$(echo "$GIT_DIFF" | sed 's/\t/    /g')
+          # Debug: Output extracted method signatures for verification
+          echo "Method Signatures: $ALL_METHOD_SIGNATURES"
 
-          # Debug: Output cleaned diff for verification
-          echo "Clean Diff: $CLEAN_DIFF"
-
-          # Set the cleaned diff as output to use in the next step
-          echo "::set-output name=diff::$CLEAN_DIFF"
+          # Set the method signatures as output to use in the next step
+          echo "::set-output name=signatures::$ALL_METHOD_SIGNATURES"
 
       - name: Send prompt to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # Get the cleaned git diff from the previous step
-          GIT_DIFF="${{ steps.get_changes.outputs.diff }}"
+          # Get the extracted method signatures from the previous step
+          METHOD_SIGNATURES="${{ steps.get_signatures.outputs.signatures }}"
 
-          # Debug: Output the git diff being sent in the prompt
-          echo "Sending the following diff in the prompt:"
-          echo "$GIT_DIFF"
+          # Debug: Output the method signatures being sent in the prompt
+          echo "Sending the following method signatures in the prompt:"
+          echo "$METHOD_SIGNATURES"
 
-          # Prepare the prompt with structured and cleaned git diff
-          PROMPT="Here are the changes (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases based on the code changes."
+          # Prepare the prompt with structured method signatures
+          PROMPT="Here are the method signatures: \n\n${METHOD_SIGNATURES}\n\nPlease generate Python 'unittest' test cases based on these method signatures."
 
           # Debug: Output the constructed prompt for verification
           echo "Constructed Prompt: $PROMPT"
@@ -57,7 +54,7 @@ jobs:
           -H "Authorization: Bearer $OPENAI_API_KEY" \
           -d '{
             "model": "gpt-3.5-turbo",
-            "messages": [{"role": "system", "content": "You are a programmer tasked with generating Python 'unittest' test cases based on a git diff."}, {"role": "user", "content": "'"$PROMPT"'"}]
+            "messages": [{"role": "system", "content": "You are a programmer tasked with generating Python 'unittest' test cases based on method signatures."}, {"role": "user", "content": "'"$PROMPT"'"}]
           }' | jq -r '.choices[0].message.content')
 
           # Debug: Output the response for verification
@@ -71,5 +68,5 @@ jobs:
           git config --local user.name "github-actions"
           git config --local user.email "github-actions@github.com"
           git add response.txt
-          git commit -m "Add OpenAI response based on git diff"
+          git commit -m "Add OpenAI response based on method signatures"
           git push
