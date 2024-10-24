@@ -16,27 +16,30 @@ jobs:
       - name: Get all method signatures
         id: get_signatures
         run: |
-          # Initialize a variable to store all method signatures
+          # Initialize a variable to store all unique method signatures
           ALL_METHOD_SIGNATURES=""
 
-          # Find all Python files and extract method signatures
+          # Find all Python files and extract unique method signatures
           for FILE in $(find . -name "*.py"); do
-            SIGNATURES=$(grep -E '^\s*def ' "$FILE")
+            SIGNATURES=$(grep -E '^\s*def ' "$FILE" | sort -u)  # Extract and sort unique signatures
             ALL_METHOD_SIGNATURES+="$SIGNATURES\n"
           done
+
+          # Remove any trailing newlines for cleaner output
+          ALL_METHOD_SIGNATURES=$(echo -e "$ALL_METHOD_SIGNATURES" | sed '/^$/d')
 
           # Debug: Output extracted method signatures for verification
           echo "Method Signatures: $ALL_METHOD_SIGNATURES"
 
           # Set the method signatures as output to use in the next step
-          echo "::set-output name=signatures::$ALL_METHOD_SIGNATURES"
+          echo "signatures=$ALL_METHOD_SIGNATURES" >> $GITHUB_ENV  # Using environment files to set output
 
       - name: Send prompt to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           # Get the extracted method signatures from the previous step
-          METHOD_SIGNATURES="${{ steps.get_signatures.outputs.signatures }}"
+          METHOD_SIGNATURES="${{ env.signatures }}"
 
           # Debug: Output the method signatures being sent in the prompt
           echo "Sending the following method signatures in the prompt:"
