@@ -56,7 +56,7 @@ jobs:
           echo "OpenAI test cases saved to response.txt"
       
       - name: Upload response file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3  # Updated to v3
         with:
           name: response-file
           path: response.txt
