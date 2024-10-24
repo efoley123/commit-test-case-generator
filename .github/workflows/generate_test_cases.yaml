@@ -26,7 +26,7 @@ jobs:
       - name: Get git diff
         id: git_diff
         run: |
-          git diff HEAD~1 HEAD > diff.txt
+          git diff HEAD~1 HEAD > -- diff.txt
           echo "Git diff output saved to diff.txt"
         
       - name: Call OpenAI API to generate test cases
