@@ -21,7 +21,7 @@ jobs:
 
           # Find all Python files and extract unique method signatures
           for FILE in $(find . -name "*.py"); do
-            SIGNATURES=$(grep -E '^\s*def ' "$FILE" | sort -u)  # Extract and sort unique signatures
+            SIGNATURES=$(grep -E '^\s*def ' "$FILE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/$/()/' | sort -u)
             ALL_METHOD_SIGNATURES+="$SIGNATURES\n"
           done
 
