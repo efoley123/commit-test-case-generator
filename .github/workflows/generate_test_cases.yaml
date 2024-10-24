@@ -53,15 +53,6 @@ jobs:
           # Output the coverage report for the prompt
           echo "::set-output name=coverage::$COVERAGE_REPORT"
 
-      - name: Get current test cases
-        id: get_tests
-        run: |
-          # Get the contents of the current test file
-          TEST_CASES=$(cat test_user_registration.py)
-
-          # Output the test cases for the prompt
-          echo "::set-output name=test_cases::$TEST_CASES"
-
       - name: Send prompt to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -71,9 +62,8 @@ jobs:
           CONDITION_LOGIC="${{ steps.extract_code.outputs.condition_logic }}"
           DOCSTRINGS="${{ steps.extract_docs.outputs.docs }}"
           COVERAGE_REPORT="${{ steps.get_coverage.outputs.coverage }}"
-          TEST_CASES="${{ steps.get_tests.outputs.test_cases }}"
 
-          # Prepare the prompt with structured information (without git diff)
+          # Prepare the prompt with structured information (without test cases)
           PROMPT="Here are the relevant details from the codebase:
 
           1. Function Signatures and Method Definitions:
@@ -87,9 +77,6 @@ jobs:
 
           4. Code Coverage Information:
           ${COVERAGE_REPORT}
-
-          5. Existing Test Cases:
-          ${TEST_CASES}
 
           Based on the above details, please generate Python 'unittest' test cases."
 
