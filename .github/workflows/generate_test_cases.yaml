@@ -21,12 +21,19 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
-        pip install pytest pytest-cov  # Example for Python
+        pip install pytest pytest-cov
+      shell: /usr/bin/bash -e {0}
+      env:
+        pythonLocation: /opt/hostedtoolcache/Python/3.11.10/x64
+        PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.10/x64/lib/pkgconfig
+        Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.10/x64
+        Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.10/x64
+        Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.10/x64
+        LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.10/x64/lib
 
     - name: Run tests and generate coverage report
       run: |
-        pytest --cov=my_project > coverage.txt  # Adjust as needed
+        pytest --cov=my_project > coverage.txt  # Adjust 'my_project' to your actual project name
 
     - name: Extract uncovered lines (simple example)
       run: |
@@ -34,7 +41,7 @@ jobs:
 
     - name: Send uncovered lines to OpenAI
       env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # Make sure to add your API key to GitHub secrets
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # Ensure your OpenAI API key is in GitHub secrets
       run: |
         uncovered_lines=$(cat uncovered_lines.txt)
         prompt="Generate test cases for the following lines of code that lack coverage:\n$uncovered_lines"
