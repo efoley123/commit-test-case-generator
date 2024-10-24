@@ -13,72 +13,43 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'  # Specify the required Python version
-
-      - name: Install dependencies
+      - name: Get the latest commit changes
+        id: get_changes
         run: |
-          python -m pip install --upgrade pip
-          pip install coverage
+          # Get the latest commit hash
+          LATEST_COMMIT_HASH=$(git rev-parse HEAD)
+          
+          # Get the git diff for the latest commit
+          GIT_DIFF=$(git show --unified=0 $LATEST_COMMIT_HASH)
 
-      - name: Extract function signatures and logic
-        id: extract_code
-        run: |
-          # Extract function signatures, method definitions, and conditional logic
-          SIGNATURES=$(grep -E 'def |class ' *.py)
-          CONDITION_LOGIC=$(grep -E 'if |else |for |while ' *.py)
+          # Debug: Output the git diff to verify
+          echo "Git Diff: $GIT_DIFF"
 
-          # Output the extracted data for the prompt
-          echo "::set-output name=signatures::$SIGNATURES"
-          echo "::set-output name=condition_logic::$CONDITION_LOGIC"
+          # Format the diff for readability by replacing tabs with spaces
+          CLEAN_DIFF=$(echo "$GIT_DIFF" | sed 's/\t/    /g')
 
-      - name: Get code documentation and docstrings
-        id: extract_docs
-        run: |
-          # Extract all docstrings and inline comments from the code
-          DOCSTRINGS=$(grep -E '"""|\'\'\''|# ' *.py)
+          # Debug: Output cleaned diff for verification
+          echo "Clean Diff: $CLEAN_DIFF"
 
-          # Output the extracted docs for the prompt
-          echo "::set-output name=docs::$DOCSTRINGS"
-
-      - name: Get code coverage data
-        id: get_coverage
-        run: |
-          # Run code coverage tool
-          coverage run -m unittest discover
-          COVERAGE_REPORT=$(coverage report)
-
-          # Output the coverage report for the prompt
-          echo "::set-output name=coverage::$COVERAGE_REPORT"
+          # Set the cleaned diff as output to use in the next step
+          echo "::set-output name=diff::$CLEAN_DIFF"
 
       - name: Send prompt to OpenAI and save response
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # Get the extracted code and other details
-          SIGNATURES="${{ steps.extract_code.outputs.signatures }}"
-          CONDITION_LOGIC="${{ steps.extract_code.outputs.condition_logic }}"
-          DOCSTRINGS="${{ steps.extract_docs.outputs.docs }}"
-          COVERAGE_REPORT="${{ steps.get_coverage.outputs.coverage }}"
+          # Get the cleaned git diff from the previous step
+          GIT_DIFF="${{ steps.get_changes.outputs.diff }}"
 
-          # Prepare the prompt with structured information (without current test cases)
-          PROMPT="Here are the relevant details from the codebase:
+          # Debug: Output the git diff being sent in the prompt
+          echo "Sending the following diff in the prompt:"
+          echo "$GIT_DIFF"
 
-          1. Function Signatures and Method Definitions:
-          ${SIGNATURES}
+          # Prepare the prompt with structured and cleaned git diff
+          PROMPT="Here are the changes (git diff): \n\n${GIT_DIFF}\n\nPlease generate Python 'unittest' test cases based on the code changes."
 
-          2. Conditional Statements and Logic:
-          ${CONDITION_LOGIC}
-
-          3. Documentation and Docstrings:
-          ${DOCSTRINGS}
-
-          4. Code Coverage Information:
-          ${COVERAGE_REPORT}
-
-          Based on the above details, please generate Python 'unittest' test cases."
+          # Debug: Output the constructed prompt for verification
+          echo "Constructed Prompt: $PROMPT"
 
           # Send request to OpenAI and capture the response
           RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
@@ -86,27 +57,19 @@ jobs:
           -H "Authorization: Bearer $OPENAI_API_KEY" \
           -d '{
             "model": "gpt-3.5-turbo",
-            "messages": [{"role": "system", "content": "You are a programmer tasked with generating Python 'unittest' test cases based on the provided code details."}, {"role": "user", "content": "'"$PROMPT"'"}]
+            "messages": [{"role": "system", "content": "You are a programmer tasked with generating Python 'unittest' test cases based on a git diff."}, {"role": "user", "content": "'"$PROMPT"'"}]
           }' | jq -r '.choices[0].message.content')
 
-          # Output the response for verification
+          # Debug: Output the response for verification
           echo "OpenAI Response: $RESPONSE"
 
-          # Save the response to a file
+          # Create a new file and write the response to it
           echo "$RESPONSE" > response.txt
-
-          # Check if the file exists and its contents
-          if [ -f response.txt ]; then
-              echo "Response file created successfully."
-              cat response.txt  # Display the file contents
-          else
-              echo "Failed to create response file."
-          fi
 
       - name: Commit response file
         run: |
           git config --local user.name "github-actions"
           git config --local user.email "github-actions@github.com"
-          git add response.txt  # Ensure the correct path to response.txt
-          git commit -m "Add OpenAI response based on code details" || echo "Nothing to commit, file may not exist."
+          git add response.txt
+          git commit -m "Add OpenAI response based on git diff"
           git push
