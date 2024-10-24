@@ -28,6 +28,9 @@ jobs:
           # Remove any trailing newlines for cleaner output
           ALL_METHOD_SIGNATURES=$(echo -e "$ALL_METHOD_SIGNATURES" | sed '/^$/d')
 
+          # Replace colons with semicolons to avoid format issues in env variable
+          ALL_METHOD_SIGNATURES=$(echo -e "$ALL_METHOD_SIGNATURES" | sed 's/:/;/g')
+
           # Debug: Output extracted method signatures for verification
           echo "Method Signatures: $ALL_METHOD_SIGNATURES"
 
@@ -40,6 +43,9 @@ jobs:
         run: |
           # Get the extracted method signatures from the previous step
           METHOD_SIGNATURES="${{ env.signatures }}"
+
+          # Replace semicolons back to colons for the prompt
+          METHOD_SIGNATURES=$(echo "$METHOD_SIGNATURES" | sed 's/;/:/g')
 
           # Debug: Output the method signatures being sent in the prompt
           echo "Sending the following method signatures in the prompt:"
