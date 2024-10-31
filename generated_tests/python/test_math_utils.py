@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from your_module import add, power, subtract, multiply, divide
+from math_utils import add, power, subtract, multiply, divide, calculator
 
 # Test add function
 def test_add_positive_numbers():

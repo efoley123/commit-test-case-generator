@@ -81,6 +81,7 @@ Requirements:
 5. Follow {framework} best practices
 6. Ensure high code coverage
 7. Test both success and failure scenarios
+8. Make sure to include comments in the code
 
 Code to test:
 
