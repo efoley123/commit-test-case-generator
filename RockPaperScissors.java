@@ -65,5 +65,6 @@ public class RockPaperScissors {
         // Close the scanner
         scanner.close();
         System.out.println("Thank you for playing!");
+        System.out.println("Bye");
     }
 }
