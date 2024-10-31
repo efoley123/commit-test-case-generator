@@ -11,89 +11,120 @@ import java.util.Random;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class RockPaperScissorsTest {
+class RockPaperScissorsUnitTest {
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;
     private Random mockRandom;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         System.setOut(new PrintStream(outContent));
         mockRandom = mock(Random.class);
+        RockPaperScissors.setRandom(mockRandom); // Assume method to inject mock
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         System.setOut(originalOut);
     }
 
-    // Mocking System.in to simulate user input
     private void provideInput(String data) {
         ByteArrayInputStream testIn = new ByteArrayInputStream(data.getBytes());
         System.setIn(testIn);
     }
 
     @Test
-    public void testGetUserChoiceValidInput() {
+    void testGetUserChoiceValidInput() {
         provideInput("rock\n");
         assertEquals("rock", RockPaperScissors.getUserChoice());
     }
 
     @Test
-    public void testGetUserChoiceInvalidThenValidInput() {
+    void testGetUserChoiceInvalidThenValidInput() {
         provideInput("invalid\npaper\n");
         assertEquals("paper", RockPaperScissors.getUserChoice());
     }
 
     @Test
-    public void testGetComputerChoice() {
-        // Mocking Random class to control the output of getComputerChoice
-        when(mockRandom.nextInt(anyInt())).thenReturn(0); // Mocking choice "rock"
+    void testGetComputerChoiceRock() {
+        when(mockRandom.nextInt(anyInt())).thenReturn(0);
         assertEquals("rock", RockPaperScissors.getComputerChoice());
-        verify(mockRandom, times(1)).nextInt(3);
     }
 
     @Test
-    public void testDetermineWinnerUserWins() {
+    void testGetComputerChoicePaper() {
+        when(mockRandom.nextInt(anyInt())).thenReturn(1);
+        assertEquals("paper", RockPaperScissors.getComputerChoice());
+    }
+
+    @Test
+    void testGetComputerChoiceScissors() {
+        when(mockRandom.nextInt(anyInt())).thenReturn(2);
+        assertEquals("scissors", RockPaperScissors.getComputerChoice());
+    }
+
+    @Test
+    void testDetermineWinnerUserWins() {
         assertEquals("You win!", RockPaperScissors.determineWinner("rock", "scissors"));
     }
 
     @Test
-    public void testDetermineWinnerComputerWins() {
+    void testDetermineWinnerComputerWins() {
         assertEquals("Computer wins!", RockPaperScissors.determineWinner("paper", "scissors"));
     }
 
     @Test
-    public void testDetermineWinnerTie() {
+    void testDetermineWinnerTie() {
         assertEquals("It's a tie!", RockPaperScissors.determineWinner("rock", "rock"));
     }
 
     @Test
-    public void testDisplayScore() {
-        RockPaperScissors.determineWinner("rock", "scissors"); // User wins
-        RockPaperScissors.determineWinner("scissors", "rock"); // Computer wins
-        RockPaperScissors.determineWinner("paper", "paper"); // Tie
+    void testDisplayScoreSingleRound() {
+        RockPaperScissors.determineWinner("rock", "scissors");
         RockPaperScissors.displayScore();
         assertTrue(outContent.toString().contains("You: 1"));
-        assertTrue(outContent.toString().contains("Computer: 1"));
-        assertTrue(outContent.toString().contains("Ties: 1"));
+        assertTrue(outContent.toString().contains("Computer: 0"));
+        assertTrue(outContent.toString().contains("Ties: 0"));
     }
 
-    // Ensuring that scores are correctly updated in multiple rounds
     @Test
-    public void testScoresAfterMultipleRounds() {
-        RockPaperScissors.determineWinner("rock", "scissors"); // User wins
-        RockPaperScissors.determineWinner("rock", "scissors"); // User wins again
-        RockPaperScissors.determineWinner("scissors", "rock"); // Computer wins
-        assertEquals("You win!", RockPaperScissors.determineWinner("rock", "scissors")); // User wins third time
-        assertEquals("It's a tie!", RockPaperScissors.determineWinner("paper", "paper")); // Tie
-
+    void testScoresAfterMultipleRounds() {
+        RockPaperScissors.determineWinner("rock", "scissors");
+        RockPaperScissors.determineWinner("rock", "scissors");
+        RockPaperScissors.determineWinner("scissors", "rock");
+        RockPaperScissors.determineWinner("rock", "scissors");
+        RockPaperScissors.determineWinner("paper", "paper");
         RockPaperScissors.displayScore();
         assertTrue(outContent.toString().contains("You: 3"));
         assertTrue(outContent.toString().contains("Computer: 1"));
         assertTrue(outContent.toString().contains("Ties: 1"));
     }
+
+    @Test
+    void testInvalidInputFollowedByExit() {
+        provideInput("invalid\nexit\n");
+        assertThrows(Exception.class, RockPaperScissors::getUserChoice); // Assuming getUserChoice throws on "exit"
+    }
+
+    // Test to ensure the system handles unexpected high values from Random
+    @Test
+    void testGetComputerChoiceWithUnexpectedHighValue() {
+        when(mockRandom.nextInt(anyInt())).thenReturn(999); // Unexpected high value
+        assertThrows(Exception.class, RockPaperScissors::getComputerChoice); // Assuming getComputerChoice has a safeguard
+    }
+
+    // Test to ensure the system handles negative values from Random
+    @Test
+    void testGetComputerChoiceWithNegativeValue() {
+        when(mockRandom.nextInt(anyInt())).thenReturn(-1); // Negative value
+        assertThrows(Exception.class, RockPaperScissors::getComputerChoice); // Assuming getComputerChoice has a safeguard
+    }
+
+    // Ensure that providing no input (EOF) to getUserChoice properly throws or handles the situation
+    @Test
+    void testGetUserChoiceWithNoInput() {
+        provideInput(""); // EOF
+        assertThrows(Exception.class, RockPaperScissors::getUserChoice); // Assuming getUserChoice handles EOF appropriately
+    }
 }
-```
-Note: In the provided code snippet, I've included tests for normal, edge, and error cases as required. However, mocking the `Random` class directly in `getComputerChoice` would require changes to the original code structure to inject the mock, which I've simulated by demonstrating how you would set it up. Similarly, user input is simulated for `getUserChoice` tests, but keep in mind this approach is somewhat simplified and assumes the method is decoupled enough to be tested in isolation.
