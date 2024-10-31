@@ -1,37 +1,47 @@
-# math_utils.py
+def add(x, y):
+    return x + y
 
-def add(a, b):
-    """Returns the sum of two numbers."""
-    return a + b
+def subtract(x, y):
+    return x - y
 
-def subtract(a, b):
-    """Returns the difference between two numbers."""
-    return a - b
+def multiply(x, y):
+    return x * y
 
-def multiply(a, b):
-    """Returns the multiplication of the two numbers."""
-    return a*b
+def divide(x, y):
+    if y != 0:
+        return x / y
+    else:
+        return "Error: Division by zero!"
 
-def divide(a, b):
-    """Returns the division of the two numbers."""
-    return a/b
+def calculator():
+    print("Simple Calculator")
+    print("Select an operation:")
+    print("1. Addition")
+    print("2. Subtraction")
+    print("3. Multiplication")
+    print("4. Division")
 
-def addOne(a):
-    """Returns the number plus one."""
-    return a+1
+    while True:
+        choice = input("Enter the number of the operation (1/2/3/4) or 'exit' to quit: ")
 
-def addTwo(a):
-    """Returns the number plus two."""
-    return a+2
+        if choice == 'exit':
+            print("Exiting the calculator. Goodbye!")
+            break
 
-def addThree(a):
-    """Returns the number plus three."""
-    return a+3
+        if choice in ['1', '2', '3', '4']:
+            num1 = float(input("Enter first number: "))
+            num2 = float(input("Enter second number: "))
 
-def addfour(a):
-    """Returns the number plus four."""
-    return a+4
+            if choice == '1':
+                print(f"{num1} + {num2} = {add(num1, num2)}")
+            elif choice == '2':
+                print(f"{num1} - {num2} = {subtract(num1, num2)}")
+            elif choice == '3':
+                print(f"{num1} * {num2} = {multiply(num1, num2)}")
+            elif choice == '4':
+                print(f"{num1} / {num2} = {divide(num1, num2)}")
+        else:
+            print("Invalid input. Please enter a number from 1 to 4.")
 
-def addFive(a):
-    """Returns the number plus five."""
-    return a+5
+if __name__ == "__main__":
+    calculator()
